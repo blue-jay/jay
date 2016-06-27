@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -165,7 +166,6 @@ func generateCollection(folderPath string, variableMap map[string]interface{}) {
 		}
 
 		for name, varArray := range vMap {
-
 			argMap, ok := varArray.(map[string]interface{})
 			if !ok {
 				log.Fatalf("Item at index '%v' for key, 'config.collection', is not in the correct format", i)
@@ -184,7 +184,21 @@ func generateCollection(folderPath string, variableMap map[string]interface{}) {
 			// Generate variable map
 			variableMap := generateVariableMap(mapFile, argMap)
 
-			generateSingle(folderPath, genFilePath, variableMap)
+			// Check for config type
+			configType, ok := variableMap["config.type"]
+			if !ok {
+				log.Fatal("Key, 'config.type', is missing from the .json file")
+			}
+
+			// Handle based on config.type
+			switch configType {
+			case "single":
+				generateSingle(folderPath, genFilePath, variableMap)
+			case "collection":
+				generateCollection(folderPath, variableMap)
+			default:
+				log.Fatalf("Value of '%v' for key 'config.type' is not supported", configType)
+			}
 		}
 	}
 }
@@ -213,6 +227,20 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 		}
 	}
 
+	// If config.parse = false
+	if val, ok := variableMap["config.parse"]; ok {
+		if b, _ := strconv.ParseBool(fmt.Sprintf("%v", val)); !b {
+			// Don't parse template, just copy to new file
+			err := toFile(genFilePath, outputFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("Code generated:", outputFile)
+			return
+		}
+	}
+
+	// Parse template and write to file
 	err := fromMapToFile(genFilePath, variableMap, outputFile)
 	if err != nil {
 		log.Fatal(err)
@@ -301,6 +329,22 @@ func fromMapToFile(templateFile string, d map[string]interface{}, outputFile str
 
 	// Fills template with variables and writes to file
 	err = t.Execute(f, d)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// toFile will output a file by without parsing
+func toFile(templateFile string, outputFile string) error {
+
+	data, err := ioutil.ReadFile(templateFile)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(outputFile, data, os.ModePerm)
 	if err != nil {
 		return err
 	}
