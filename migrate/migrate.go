@@ -90,17 +90,41 @@ func run(cmd *command.Info, args []string) {
 	case database.TypeMySQL:
 		// Create MySQL entity
 		my := &mysql.Entity{}
+
 		// Update the config
 		my.UpdateConfig(&config.Database)
 		di = my
+
+		// Connect to the database
+		err := database.Connect(config.Database, true)
+		if err != nil {
+			// Close the open connection (since 'unknown database' is still an active
+			// connection)
+			database.Disconnect()
+
+			// Connect to database without a database
+			err = database.Connect(config.Database, false)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// Create the database
+			err = database.Create(config.Database.MySQL)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// Close connection
+			database.Disconnect()
+
+			// Reconnect to the database
+			err = database.Connect(config.Database, true)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	default:
 		log.Fatal("No registered database in config of type:", config.Database.Type)
-	}
-
-	// Connect to database
-	err := database.Connect(config.Database)
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	// Run the logic after db is set
@@ -169,7 +193,7 @@ func handleError(err error) {
 func databaseFolder() (string, *info) {
 	jc := os.Getenv("JAYCONFIG")
 	if len(jc) == 0 {
-		log.Fatalln("Environment variable JAYCONFIG needs to be set to the config.json file location.")
+		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
 	}
 
 	config := &info{}
@@ -181,7 +205,7 @@ func databaseFolder() (string, *info) {
 	}
 
 	// Build the path
-	projectRoot := filepath.Dir(filepath.Dir(jc))
+	projectRoot := filepath.Dir(jc)
 	folder := filepath.Join(projectRoot, "database", "migration")
 
 	// Check to see if the folder exists

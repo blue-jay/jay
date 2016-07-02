@@ -43,7 +43,7 @@ Flags:
 }
 
 type info struct {
-	View view.View `json:"View"`
+	View view.Info `json:"View"`
 }
 
 // ParseJSON unmarshals bytes to structs
