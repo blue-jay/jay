@@ -71,13 +71,15 @@ func findLogic() {
 	fmt.Println("Search Results")
 	fmt.Println("==============")
 
-	err := filepath.Walk(".", findVisit)
+	err := filepath.Walk(".", visit)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func findVisit(path string, fi os.FileInfo, err error) error {
+// Visit analyzes a file to see if it matches the parameters
+// Original: https://gist.github.com/tdegrunt/045f6b3377f3f7ffa408
+func visit(path string, fi os.FileInfo, err error) error {
 	if err != nil {
 		return err
 	}

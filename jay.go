@@ -11,7 +11,6 @@ import (
 	"github.com/blue-jay/jay/generate"
 	"github.com/blue-jay/jay/migrate"
 	"github.com/blue-jay/jay/replace"
-	"github.com/blue-jay/jay/template"
 )
 
 // Commands lists the available commands.
@@ -20,7 +19,6 @@ var commands = []*command.Info{
 	find.Cmd,
 	replace.Cmd,
 	console.Cmd,
-	template.Cmd,
 	migrate.Cmd,
 	generate.Cmd,
 }
