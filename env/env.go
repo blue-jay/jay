@@ -2,7 +2,6 @@ package env
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -19,7 +18,7 @@ import (
 
 var Cmd = &command.Info{
 	Run:       run,
-	UsageLine: "env generate",
+	UsageLine: "env [make] [showkeys] [updatekeys]",
 	Short:     "manage the env.json file",
 	Long: `
 Env can generate an env.json file and create a new session keys.
@@ -52,7 +51,11 @@ func run(cmd *command.Info, args []string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Println("File, env.json, created successfully.")
+			err = updateFile("env.json")
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println("File, env.json, created successfully with new session keys.")
 			return
 		case "showkeys":
 			fmt.Println("Paste these into your env.json file:")
@@ -64,7 +67,7 @@ func run(cmd *command.Info, args []string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Println("Keys updated!")
+			log.Println("Session keys updated in env.json.")
 			return
 		}
 	}
@@ -82,21 +85,7 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	data = replaceKeys(data)
-
 	return ioutil.WriteFile(dst, data, os.ModePerm)
-}
-
-func replaceKeys(data []byte) []byte {
-	data = bytes.Replace(data,
-		[]byte("<16 or 32 byte string>"),
-		[]byte(encodedKey(64)), -1)
-
-	data = bytes.Replace(data,
-		[]byte("<16, 24, or 32 byte string>"),
-		[]byte(encodedKey(32)), -1)
-
-	return data
 }
 
 func updateFile(src string) error {
