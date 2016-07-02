@@ -1,7 +1,5 @@
 package find
 
-// Source: https://gist.github.com/tdegrunt/045f6b3377f3f7ffa408
-
 import (
 	"fmt"
 	"io/ioutil"

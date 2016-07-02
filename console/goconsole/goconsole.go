@@ -53,7 +53,7 @@ type Console struct {
 	commands map[string]command
 }
 
-// The New function creates an instance of the console type.
+// New creates an instance of the console type.
 func New() *Console {
 	con := &Console{}
 	con.commands = make(map[string]command)
@@ -78,12 +78,15 @@ func New() *Console {
 		sort.Strings(keys)
 
 		// Output the commands
-		fmt.Println("Available commands:")
+		fmt.Println("Available Commands")
+		fmt.Println("==================")
 		for i, val := range keys {
+			name := con.commands[val].name
+			spacing := strings.Repeat(" ", 15-len(name))
 			if i == len(keys)-1 {
-				fmt.Print(con.commands[val].name, " - ", con.commands[val].description)
+				fmt.Printf("%v %v %v", name, spacing, con.commands[val].description)
 			} else {
-				fmt.Println(con.commands[val].name, "-", con.commands[val].description)
+				fmt.Printf("%v %v %v\n", name, spacing, con.commands[val].description)
 			}
 		}
 	})
@@ -95,7 +98,8 @@ func New() *Console {
 // Core
 // *****************************************************************************
 
-// The Start function starts the console loop where the user is prompted for keywords and then runs the associated functions.
+// Start runs the console loop where the user is prompted for
+// keywords and then calls the associated functions.
 func (con *Console) Start() {
 	fmt.Print(con.Title)
 
@@ -134,17 +138,17 @@ func (con *Console) Start() {
 // Console Configuration
 // *****************************************************************************
 
-// The Add function registers a new console keyword, description (used in the help keyword), and function. The function must receive a string type which is the entire string of text the user typed in before pressing Enter.
+// Add registers a new console keyword, description (used in the help keyword), and function. The function must receive a string type which is the entire string of text the user typed in before pressing Enter.
 func (con *Console) Add(keyword string, description string, function func(string)) {
 	con.commands[keyword] = command{keyword, description, function}
 }
 
-// The Remove function unregisters a console keyword so it cannot be called.
+// Remove unregisters a console keyword so it cannot be called.
 func (con *Console) Remove(keyword string) {
 	delete(con.commands, keyword)
 }
 
-// The Clear function unregisters all the console keywords so they cannot be called.
+// Clear unregisters all the console keywords so they cannot be called.
 func (con *Console) Clear() {
 	con.commands = make(map[string]command)
 }
@@ -153,7 +157,7 @@ func (con *Console) Clear() {
 // Helpers
 // *****************************************************************************
 
-// The Readline function waits for the user to type and then press Enter. Readline returns the typed string.
+// Readline waits for the user to type and then press Enter. Readline returns the typed string.
 func Readline() string {
 	bio := bufio.NewReader(os.Stdin)
 	line, _, err := bio.ReadLine()

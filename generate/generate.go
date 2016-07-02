@@ -37,9 +37,8 @@ passed (whether empty or not) to the 'jay generate' command.
 
 Let's look at generate/model/default.json:
 {
-	"info": {
-		"output": "model/{{.package}}/{{.package}}.go"
-	},
+	"config.type": "single",
+	"config.output": "model/{{.package}}/{{.package}}.go",
 	"package": "",
 	"table": ""
 }
@@ -74,7 +73,7 @@ The 'output' key under 'info' is required. It should be the relative output
 file path to the project root for the generated file.
 
 The folder structure of the templates (model, controller, etc) has no effect
-on the generation, it's purely to air with organization of the template pairs.
+on the generation, it's purely to aid with organization of the template pairs.
 
 You must store the path to the env.json file in the environment
 variable: JAYCONFIG. The file is at project root that is prepended to all

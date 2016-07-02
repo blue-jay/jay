@@ -10,7 +10,7 @@ import (
 var Cmd = &command.Info{
 	Run:       runConsole,
 	UsageLine: "console",
-	Short:     "load the terminal",
+	Short:     "load a terminal that doesn't really do anything",
 	Long: `
 Console will load a terminal.
 `,

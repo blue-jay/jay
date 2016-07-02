@@ -1,7 +1,5 @@
 package replace
 
-// Source: https://gist.github.com/tdegrunt/045f6b3377f3f7ffa408
-
 import (
 	"fmt"
 	"io/ioutil"
@@ -149,7 +147,6 @@ func replaceVisit(path string, fi os.FileInfo, err error) error {
 
 		// If the file contains the search term
 		if strings.Contains(oldContents, *flagFind) {
-
 			// Replace the search term
 			newContents := strings.Replace(oldContents, *flagFind, *flagReplace, -1)
 

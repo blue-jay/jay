@@ -35,7 +35,7 @@ var Cmd = &command.Info{
 	Long: `
 Migrate helps manage the database migrations.
 
-You must store the path to the config.json file in the
+You must store the path to the env.json file in the
 environment variable: JAYCONFIG
 
 Examples:
