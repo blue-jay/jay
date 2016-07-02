@@ -98,12 +98,12 @@ Flags:
 }
 
 func run(cmd *command.Info, args []string) {
-	rootFolder := projectFolder()
+	rootFolder, _ := command.ProjectFolder()
 
 	if len(args) >= 2 {
 		// Ensure the template pair files exist
 		jsonFilePath := filepath.Join(rootFolder, "generate", args[0]+".json")
-		if !exists(jsonFilePath) {
+		if !command.Exists(jsonFilePath) {
 			log.Fatalf("File doesn't exist: %v", jsonFilePath)
 		}
 
@@ -213,13 +213,13 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 	outputFile := filepath.Join(folderPath, outputRelativeFile)
 
 	// Check if the file exists
-	if exists(outputFile) {
+	if command.Exists(outputFile) {
 		log.Fatalf("Cannot generate because file already exists: %v", outputFile)
 	}
 
 	// Check if the folder exists
 	dir := filepath.Dir(outputFile)
-	if !exists(dir) {
+	if !command.Exists(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			log.Fatalln(err)
@@ -248,30 +248,6 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 	fmt.Println("Code generated:", outputFile)
 }
 
-// projectFolder returns the project folder path
-func projectFolder() string {
-	jc := os.Getenv("JAYCONFIG")
-	if len(jc) == 0 {
-		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
-	}
-
-	info := make(map[string]interface{})
-
-	// Read the config file
-	jsonBytes, err := ioutil.ReadFile(jc)
-	if err != nil {
-		log.Fatalln("The configuration file cannot be found so this command will not work.")
-	}
-
-	// Parse the config
-	err = json.Unmarshal(jsonBytes, &info)
-	if err != nil {
-		log.Fatalln("The configuration file cannot be parsed so this command will not work.")
-	}
-
-	return filepath.Dir(jc)
-}
-
 func cloneMap(originalMap map[string]interface{}) map[string]interface{} {
 	copyMap := make(map[string]interface{})
 
@@ -280,16 +256,6 @@ func cloneMap(originalMap map[string]interface{}) map[string]interface{} {
 	}
 
 	return copyMap
-}
-
-// exists will exit if the file or folder doesn't exist
-func exists(f string) bool {
-	if _, err := os.Stat(f); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 // jsonFileToMap converts json file to an interface map

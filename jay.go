@@ -7,6 +7,7 @@ import (
 
 	"github.com/blue-jay/jay/command"
 	"github.com/blue-jay/jay/console"
+	"github.com/blue-jay/jay/env"
 	"github.com/blue-jay/jay/find"
 	"github.com/blue-jay/jay/generate"
 	"github.com/blue-jay/jay/migrate"
@@ -18,9 +19,10 @@ import (
 var commands = []*command.Info{
 	find.Cmd,
 	replace.Cmd,
-	console.Cmd,
 	migrate.Cmd,
 	generate.Cmd,
+	env.Cmd,
+	console.Cmd,
 }
 
 func init() {

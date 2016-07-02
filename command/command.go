@@ -7,11 +7,14 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -138,4 +141,38 @@ func Help(args []string) {
 
 	fmt.Fprintf(os.Stderr, "Unknown help topic %#q.  Run 'jay help'.\n", arg)
 	os.Exit(2) // failed at 'jay help cmd'
+}
+
+// ProjectFolder returns the project folder path and config
+func ProjectFolder() (string, map[string]interface{}) {
+	jc := os.Getenv("JAYCONFIG")
+	if len(jc) == 0 {
+		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
+	}
+
+	info := make(map[string]interface{})
+
+	// Read the config file
+	jsonBytes, err := ioutil.ReadFile(jc)
+	if err != nil {
+		log.Fatalln("The configuration file cannot be found so this command will not work.")
+	}
+
+	// Parse the config
+	err = json.Unmarshal(jsonBytes, &info)
+	if err != nil {
+		log.Fatalln("The configuration file cannot be parsed so this command will not work.")
+	}
+
+	return filepath.Dir(jc), info
+}
+
+// Exists will return true if the file or folder exists
+func Exists(f string) bool {
+	if _, err := os.Stat(f); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }

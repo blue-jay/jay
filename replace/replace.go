@@ -21,7 +21,7 @@ var (
 )
 
 var Cmd = &command.Info{
-	Run:       runReplace,
+	Run:       run,
 	UsageLine: "replace -find text -replace text -extension text [-filename=bool] [recursive=bool] [write=bool]",
 	Short:     "replace text in a file",
 	Long: `
@@ -52,7 +52,7 @@ Flags:
 `,
 }
 
-func runReplace(cmd *command.Info, args []string) {
+func run(cmd *command.Info, args []string) {
 	flagFind = cmd.Flag.String("find", "", "search for text")
 	flagReplace = cmd.Flag.String("replace", "", "replace with text")
 	flagExt = cmd.Flag.String("extension", "*.go", "file extension")
@@ -135,7 +135,6 @@ func visit(path string, fi os.FileInfo, err error) error {
 			// Only change the filename, not the folder, or rename?
 			oldpath := path
 			path = strings.Replace(path, *flagFind, *flagReplace, -1)
-
 			fmt.Println(" Rename:", oldpath, "("+path+")")
 
 			if *flagCommit {
@@ -151,9 +150,7 @@ func visit(path string, fi os.FileInfo, err error) error {
 		if strings.Contains(oldContents, *flagFind) {
 			// Replace the search term
 			newContents := strings.Replace(oldContents, *flagFind, *flagReplace, -1)
-
 			count := strconv.Itoa(strings.Count(oldContents, *flagFind))
-
 			fmt.Println("Replace:", path, "("+count+")")
 
 			// Write the data back to the file

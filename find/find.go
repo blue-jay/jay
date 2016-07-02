@@ -19,7 +19,7 @@ var (
 )
 
 var Cmd = &command.Info{
-	Run:       runFind,
+	Run:       run,
 	UsageLine: "find -find text -extension text [-filename=bool] [recursive=bool]",
 	Short:     "find text in a file",
 	Long: `
@@ -44,7 +44,7 @@ Flags:
 `,
 }
 
-func runFind(cmd *command.Info, args []string) {
+func run(cmd *command.Info, args []string) {
 	flagFind = cmd.Flag.String("find", "", "search for text")
 	flagExt = cmd.Flag.String("extension", "*.go", "file extension")
 	flagName = cmd.Flag.Bool("filename", true, "include file path when replacing")
