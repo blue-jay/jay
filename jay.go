@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/blue-jay/jay/command"
-	"github.com/blue-jay/jay/console"
 	"github.com/blue-jay/jay/env"
 	"github.com/blue-jay/jay/find"
 	"github.com/blue-jay/jay/generate"
@@ -22,7 +21,6 @@ var commands = []*command.Info{
 	migrate.Cmd,
 	generate.Cmd,
 	env.Cmd,
-	console.Cmd,
 }
 
 func init() {

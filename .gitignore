@@ -1,2 +1,11 @@
 # OS Files
 .DS_Store
+thumbs.db
+
+# Blue Jay Files
+env.json
+*.exe
+
+# Folders
+/vendor/
+/node_modules/
