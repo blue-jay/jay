@@ -1,8 +1,78 @@
+// Package generate will parse and create files from template pairs.
+// A template pair is a set of template files:
+//   * default.json - json file
+//   * default.gen - any type of text file
+//
+// Both files are template files and are parsed using the Go text/template
+// package. The 'jay generate' tool loops through the first level of key pairs
+// for empty strings. For every empty string, an argument is required to be
+// passed (whether empty or not) to the 'jay generate' command.
+//
+// Let's look at generate/model/default.json:
+// {
+//   "config.type": "single",
+//   "config.output": "model/{{.package}}/{{.package}}.go",
+//   "package": "",
+//   "table": ""
+// }
+//
+// Let's break down this command into pieces:
+// jay generate model/default package:automobile table:car
+//
+// Argument: 'model/default'
+// Specifies generate/model/default.json and generate/model/default.gen are the
+// template pair.
+//
+// Argument: 'package:automobile'
+// The key, 'package', from default.json will be filled with the value:
+// 'automobile'
+//
+// Argument: 'table:car'
+// The key, 'table', from default.json will be filled with the value: 'car'
+//
+// The .json file is actually parsed up to 100 times (LoopLimit of 100 can be
+// changed at the package level) to ensure all variables like '{{.package}}' are
+// set to the correct value.
+//
+// In the first iteration of parsing, the 'package' key is set to 'car'.
+// In the second iteration of parsing, the '{{.package}}' variables
+// are set to 'car' also since the 'package' key becomes a variable.
+//
+// All first level keys (info, package, table) become variables after the first
+// iteration of parsing so they can be used without the file. If a variable is
+// misspelled and is never filled, a helpful error will be displayed.
+//
+// The 'output' key under 'info' is required. It should be the relative output
+// file path to the project root for the generated file.
+//
+// The folder structure of the templates (model, controller, etc) has no effect
+// on the generation, it's purely to aid with organization of the template pairs.
+//
+// You must store the path to the env.json file in the environment
+// variable: JAYCONFIG. The file is at project root that is prepended to all
+// relative file paths.
+//
+// Examples:
+//   jay generate model/default package:car table:car
+//   Generate a new model from variables in model/default.json and applies
+//   those variables to model/default.gen.
+//   jay generate controller/default package:car url:car model:car view:car
+//   Generate a new controller from variables in controller/default.json
+//   and applies those variables to controller/default.gen.
+//
+// Flags:
+//   Argument 1 - model/default or controller/default
+//   Relative path without an extension to the template pair. Any combination
+//   of folders and files can be used.
+//   Argument 2,3,etc - package:car
+//   Key pair to set in the .json file. Required for every empty key in the
+//   .json file.
 package generate
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,137 +82,58 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/blue-jay/jay/command"
+	"github.com/blue-jay/jay/lib/common"
 )
 
 var (
+	// LoopLimit specified the max number of iterations of replacing variables
+	// with values to prevent an infinite loop.
 	LoopLimit = 100
 )
 
-var Cmd = &command.Info{
-	Run:       run,
-	UsageLine: "generate [folder/file] key:value...",
-	Short:     "code generation",
-	Long: `
-Generate will parse and create files from template pairs.
-
-A template pair is a set of template files:
-  * default.json - json file
-  * default.gen - any type of text file
-
-Both files are template files and are parsed using the Go text/template
-package. The 'jay generate' tool loops through the first level of key pairs
-for empty strings. For every empty string, an argument is required to be
-passed (whether empty or not) to the 'jay generate' command.
-
-Let's look at generate/model/default.json:
-{
-	"config.type": "single",
-	"config.output": "model/{{.package}}/{{.package}}.go",
-	"package": "",
-	"table": ""
-}
-
-Let's break down this command into pieces:
-jay generate model/default package:automobile table:car
-
-Argument: 'model/default'
-Specifies generate/model/default.json and generate/model/default.gen are the
-template pair.
-
-Argument: 'package:automobile'
-The key, 'package', from default.json will be filled with the value:
-'automobile'
-
-Argument: 'table:car'
-The key, 'table', from default.json will be filled with the value: 'car'
-
-The .json file is actually parsed up to 100 times (LoopLimit of 100 can be
-changed at the package level) to ensure all variables like '{{.package}}' are
-set to the correct value.
-
-In the first iteration of parsing, the 'package' key is set to 'car'.
-In the second iteration of parsing, the '{{.package}}' variables
-are set to 'car' also since the 'package' key becomes a variable.
-
-All first level keys (info, package, table) become variables after the first
-iteration of parsing so they can be used without the file. If a variable is
-misspelled and is never filled, a helpful error will be displayed.
-
-The 'output' key under 'info' is required. It should be the relative output
-file path to the project root for the generated file.
-
-The folder structure of the templates (model, controller, etc) has no effect
-on the generation, it's purely to aid with organization of the template pairs.
-
-You must store the path to the env.json file in the environment
-variable: JAYCONFIG. The file is at project root that is prepended to all
-relative file paths.
-
-Examples:
-  jay generate model/default package:car table:car
-	Generate a new model from variables in model/default.json and applies
-	those variables to model/default.gen.
-  jay generate controller/default package:car url:car model:car view:car
-	Generate a new controller from variables in controller/default.json
-	and applies those variables to controller/default.gen.
-		
-Flags:
-  Argument 1 - model/default or controller/default
-	Relative path without an extension to the template pair. Any combination
-	of folders and files can be used.
-  Argument 2,3,etc - package:car
-	Key pair to set in the .json file. Required for every empty key in the
-	.json file.
-`,
-}
-
-func run(cmd *command.Info, args []string) {
-	rootFolder, _ := command.ProjectFolder()
-
-	if len(args) >= 2 {
-		// Ensure the template pair files exist
-		jsonFilePath := filepath.Join(rootFolder, "generate", args[0]+".json")
-		if !command.Exists(jsonFilePath) {
-			log.Fatalf("File doesn't exist: %v", jsonFilePath)
-		}
-
-		argMap := argsToMap(args)
-
-		// Get the json file as a map - not parsed
-		mapFile, err := jsonFileToMap(jsonFilePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Generate variable map
-		variableMap := generateVariableMap(mapFile, argMap)
-
-		// Check for config type
-		configType, ok := variableMap["config.type"]
-		if !ok {
-			log.Fatal("Key, 'config.type', is missing from the .json file")
-		}
-
-		// Handle based on config.type
-		switch configType {
-		case "single":
-			// Template File
-			genFilePath := filepath.Join(rootFolder, "generate", args[0]+".gen")
-
-			// Generate the template
-			generateSingle(rootFolder, genFilePath, variableMap)
-
-			return
-		case "collection":
-			generateCollection(rootFolder, variableMap)
-			return
-		default:
-			log.Fatalf("Value of '%v' for key 'config.type' is not supported", configType)
-		}
+// Run starts the template generation logic
+func Run(args []string, rootFolder string) error {
+	// Ensure the template pair files exist
+	jsonFilePath := filepath.Join(rootFolder, "generate", args[0]+".json")
+	if !common.Exists(jsonFilePath) {
+		return fmt.Errorf("File doesn't exist: %v", jsonFilePath)
 	}
 
-	fmt.Println("Flags are missing.")
+	argMap := argsToMap(args)
+
+	// Get the json file as a map - not parsed
+	mapFile, err := jsonFileToMap(jsonFilePath)
+	if err != nil {
+		return err
+	}
+
+	// Generate variable map
+	variableMap := generateVariableMap(mapFile, argMap)
+
+	// Check for config type
+	configType, ok := variableMap["config.type"]
+	if !ok {
+		return errors.New("Key, 'config.type', is missing from the .json file")
+	}
+
+	// Handle based on config.type
+	switch configType {
+	case "single":
+		// Template File
+		genFilePath := filepath.Join(rootFolder, "generate", args[0]+".gen")
+
+		// Generate the template
+		generateSingle(rootFolder, genFilePath, variableMap)
+
+		return nil
+	case "collection":
+		generateCollection(rootFolder, variableMap)
+		return nil
+	default:
+		return fmt.Errorf("Value of '%v' for key 'config.type' is not supported", configType)
+	}
+
+	return nil
 }
 
 func generateCollection(folderPath string, variableMap map[string]interface{}) {
@@ -213,13 +204,13 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 	outputFile := filepath.Join(folderPath, outputRelativeFile)
 
 	// Check if the file exists
-	if command.Exists(outputFile) {
+	if common.Exists(outputFile) {
 		log.Fatalf("Cannot generate because file already exists: %v", outputFile)
 	}
 
 	// Check if the folder exists
 	dir := filepath.Dir(outputFile)
-	if !command.Exists(dir) {
+	if !common.Exists(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			log.Fatalln(err)
@@ -258,7 +249,7 @@ func cloneMap(originalMap map[string]interface{}) map[string]interface{} {
 	return copyMap
 }
 
-// jsonFileToMap converts json file to an interface map
+// jsonFileToMap converts json file to an interface map.
 func jsonFileToMap(file string) (map[string]interface{}, error) {
 	// Read the config file
 	b, err := ioutil.ReadFile(file)
@@ -277,7 +268,7 @@ func jsonFileToMap(file string) (map[string]interface{}, error) {
 }
 
 // fromMapToFile will output a file by parsing a template and applying
-// variables from an interface map
+// variables from an interface map.
 func fromMapToFile(templateFile string, d map[string]interface{}, outputFile string) error {
 	// Parse the template
 	t, err := template.ParseFiles(templateFile)
@@ -301,7 +292,7 @@ func fromMapToFile(templateFile string, d map[string]interface{}, outputFile str
 	return nil
 }
 
-// toFile will output a file by without parsing
+// toFile will output a file by without parsing.
 func toFile(templateFile string, outputFile string) error {
 
 	data, err := ioutil.ReadFile(templateFile)
@@ -334,7 +325,7 @@ func argsToMap(args []string) map[string]interface{} {
 }
 
 // generateVariableMap returns the relative file output path and the map of
-// variables
+// variables.
 func generateVariableMap(mapFile map[string]interface{}, argMap map[string]interface{}) map[string]interface{} {
 	m := cloneMap(mapFile)
 
@@ -357,7 +348,7 @@ func generateVariableMap(mapFile map[string]interface{}, argMap map[string]inter
 	}
 
 	// Look through the map of the file and update it with the variables
-	for s, _ := range mapFile {
+	for s := range mapFile {
 		if passedVal, ok := m[s]; ok {
 			mapFile[s] = passedVal
 		}
@@ -430,7 +421,7 @@ func generateVariableMap(mapFile map[string]interface{}, argMap map[string]inter
 			}
 		}
 
-		counter += 1
+		counter++
 
 		if counter > LoopLimit {
 			log.Fatalf("Check these keys for variable mistakes: %v", invalidKeys)

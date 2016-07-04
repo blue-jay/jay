@@ -1,3 +1,12 @@
+// Package find will search for matched case-sensitive strings in files.
+//
+// Examples:
+//	jay find . red
+//		Find the word "red" in all go files in current folder and in subfolders.
+//	jay find . red "*.*"
+//		Find the word "red" in all files in current folder and in subfolders.
+//	jay find . red "*.go" true false
+//		Find word "red" in *.go files in current folder and in subfolders, but will exclude filenames.
 package find
 
 import (
@@ -7,77 +16,32 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/blue-jay/jay/command"
 )
 
 var (
 	flagFind      *string
+	flagFolder    *string
 	flagExt       *string
 	flagName      *bool
 	flagRecursive *bool
 )
 
-var Cmd = &command.Info{
-	Run:       run,
-	UsageLine: "find -find text -extension text [-filename=bool] [recursive=bool]",
-	Short:     "find text in a file",
-	Long: `
-Find will find all case-sensitive strings matching -find.
+// Run starts the find filepath walk.
+func Run(text, folder, ext *string, recursive, filename *bool) error {
+	flagFind = text
+	flagFolder = folder
+	flagExt = ext
+	flagRecursive = recursive
+	flagName = filename
 
-Examples:
-	jay find red
-		Find the word "red" in all go files and in child directories.
-	jay find red "*.*"
-		Find the word "red" in all files and in child directories.
-	jay replace -find red -extension "*.go" -filename=false -recursive=true
-		Find word "red" in *.go files and in child directories, but excluding filenames.
-Flags:
-	-find 'text to find'
-		Case-sensitive text to find.
-	-extension 'file name or just extension'
-		File name or extension to modify. Use * as a wildcard. Directory names are not valid.
-	-filename=bool
-		True to change file names as well as text inside.
-	-recursive=bool
-		True to search in child directories.
-`,
-}
-
-func run(cmd *command.Info, args []string) {
-	flagFind = cmd.Flag.String("find", "", "search for text")
-	flagExt = cmd.Flag.String("extension", "*.go", "file extension")
-	flagName = cmd.Flag.Bool("filename", true, "include file path when replacing")
-	flagRecursive = cmd.Flag.Bool("recursive", true, "search all child folders")
-	cmd.Flag.Parse(args)
-
-	// Find is not allowed to be empty
-	if *flagFind != "" {
-		findLogic()
-	} else if len(args) == 1 {
-		*flagFind = args[0]
-		findLogic()
-	} else if len(args) == 2 {
-		*flagFind = args[0]
-		*flagExt = args[1]
-		findLogic()
-	} else {
-		fmt.Println("Flags are missing.")
-	}
-}
-
-func findLogic() {
 	fmt.Println()
 	fmt.Println("Search Results")
 	fmt.Println("==============")
 
-	err := filepath.Walk(".", visit)
-	if err != nil {
-		panic(err)
-	}
+	return filepath.Walk(*folder, visit)
 }
 
-// Visit analyzes a file to see if it matches the parameters
+// Visit analyzes a file to see if it matches the parameters.
 // Original: https://gist.github.com/tdegrunt/045f6b3377f3f7ffa408
 func visit(path string, fi os.FileInfo, err error) error {
 	if err != nil {
