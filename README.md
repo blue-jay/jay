@@ -20,5 +20,5 @@ model-view-controller (MVC) style web skeleton.
 - [**Jay**](https://github.com/blue-jay/jay) is a command-line tool with
 modules for find/replace, database migrations, code generation, and env.json.
 
-Check the [milestones](https://github.com/blue-jay/blueprint/milestones) for
+Check the [milestones](https://github.com/blue-jay/jay/milestones) for
 project status.
