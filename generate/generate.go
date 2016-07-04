@@ -124,11 +124,8 @@ func Run(args []string, rootFolder string) error {
 
 		// Generate the template
 		generateSingle(rootFolder, genFilePath, variableMap)
-
-		return nil
 	case "collection":
 		generateCollection(rootFolder, variableMap)
-		return nil
 	default:
 		return fmt.Errorf("Value of '%v' for key 'config.type' is not supported", configType)
 	}
