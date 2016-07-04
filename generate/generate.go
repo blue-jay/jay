@@ -343,6 +343,41 @@ func fillEmptyVariables(m, argMap map[string]interface{}) map[string]interface{}
 	return m
 }
 
+func parseTemplate(m map[string]interface{}, mapFileBytes []byte) (map[string]interface{}, bool) {
+	// Create the buffer
+	buf := new(bytes.Buffer)
+
+	// Parse the template
+	t, err := template.New("").Parse(string(mapFileBytes))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Fills template with variables
+	err = t.Execute(buf, m)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	parsedTemplate := buf.Bytes()
+
+	// Convert the json text back to a map
+	err = json.Unmarshal(parsedTemplate, &m)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	breakNow := false
+
+	// If the parsed template is completely filled, then stop the run, else
+	// keep running
+	if !strings.Contains(string(parsedTemplate), "<no value>") {
+		breakNow = true
+	}
+
+	return m, breakNow
+}
+
 // generateVariableMap returns the relative file output path and the map of
 // variables.
 func generateVariableMap(mapFile map[string]interface{}, argMap map[string]interface{}) map[string]interface{} {
@@ -377,32 +412,11 @@ func generateVariableMap(mapFile map[string]interface{}, argMap map[string]inter
 			log.Fatal(err)
 		}
 
-		// Create the buffer
-		buf := new(bytes.Buffer)
-
-		// Parse the template
-		t, err := template.New("").Parse(string(mapFileBytes))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Fills template with variables
-		err = t.Execute(buf, m)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		parsedTemplate := buf.Bytes()
-
-		// Convert the json text back to a map
-		err = json.Unmarshal(parsedTemplate, &m)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// If the parsed template is completely filled, then stop the run, else
-		// keep running
-		if !strings.Contains(string(parsedTemplate), "<no value>") {
+		// Parse template to determine if all the variables are passed and
+		// then break
+		var breakNow bool
+		m, breakNow = parseTemplate(m, mapFileBytes)
+		if breakNow {
 			break
 		}
 
