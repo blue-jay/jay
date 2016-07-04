@@ -321,12 +321,8 @@ func argsToMap(args []string) map[string]interface{} {
 	return argMap
 }
 
-// generateVariableMap returns the relative file output path and the map of
-// variables.
-func generateVariableMap(mapFile map[string]interface{}, argMap map[string]interface{}) map[string]interface{} {
-	m := cloneMap(mapFile)
-
-	// Loop through the map to find empty variables
+func fillEmptyVariables(m, argMap map[string]interface{}) map[string]interface{} {
+	// Loop through the map to fill empty variables
 	for s, v := range m {
 		switch t := v.(type) {
 		case string:
@@ -343,6 +339,18 @@ func generateVariableMap(mapFile map[string]interface{}, argMap map[string]inter
 			delete(m, s)
 		}
 	}
+
+	return m
+}
+
+// generateVariableMap returns the relative file output path and the map of
+// variables.
+func generateVariableMap(mapFile map[string]interface{}, argMap map[string]interface{}) map[string]interface{} {
+	// Clone map
+	m := cloneMap(mapFile)
+
+	// Fill empty variables of map
+	m = fillEmptyVariables(m, argMap)
 
 	// Look through the map of the file and update it with the variables
 	for s := range mapFile {
