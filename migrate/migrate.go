@@ -109,10 +109,15 @@ func databaseFolder() (string, *info, error) {
 		return "", config, errors.New("Environment variable JAYCONFIG needs to be set to the env.json file location.")
 	}
 
-	// Load the configuration file
-	err := load(jc, config)
+	// Read the config file
+	jsonBytes, err := ioutil.ReadFile(jc)
 	if err != nil {
-		return "", config, errors.New("The configuration file cannot be parsed so this command will not work.")
+		return "", config, err
+	}
+
+	// Parse the config
+	if err := config.ParseJSON(jsonBytes); err != nil {
+		return "", config, err
 	}
 
 	// Build the path
@@ -135,25 +140,4 @@ func folderExists(dir string) bool {
 		}
 	}
 	return true
-}
-
-// Parser must implement ParseJSON.
-type Parser interface {
-	ParseJSON([]byte) error
-}
-
-// load the JSON config file.
-func load(configFile string, p Parser) error {
-	// Read the config file
-	jsonBytes, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return err
-	}
-
-	// Parse the config
-	if err := p.ParseJSON(jsonBytes); err != nil {
-		return err
-	}
-
-	return nil
 }

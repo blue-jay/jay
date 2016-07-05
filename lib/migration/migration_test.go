@@ -3,9 +3,7 @@ package migration_test
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,16 +18,6 @@ import (
 var (
 	migrationFolder = filepath.Join("database", "migration_test")
 )
-
-// Info contains the database connection information.
-type Info struct {
-	Database database.Info `json:"Database"`
-}
-
-// ParseJSON unmarshals bytes to structs.
-func (c *Info) ParseJSON(b []byte) error {
-	return json.Unmarshal(b, &c)
-}
 
 // TestMain runs setup, tests, and then teardown.
 func TestMain(m *testing.M) {
@@ -402,25 +390,4 @@ func folderExists(dir string) bool {
 		}
 	}
 	return true
-}
-
-// Parser must implement ParseJSON.
-type Parser interface {
-	ParseJSON([]byte) error
-}
-
-// load the JSON config file.
-func load(configFile string, p Parser) error {
-	// Read the config file
-	jsonBytes, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return err
-	}
-
-	// Parse the config
-	if err := p.ParseJSON(jsonBytes); err != nil {
-		return err
-	}
-
-	return nil
 }
