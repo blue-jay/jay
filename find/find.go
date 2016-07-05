@@ -27,6 +27,8 @@ var (
 
 	// MaxSize is the maximum size of a file Go will search through
 	MaxSize int64 = 1048576
+	// Folders to skip searching in
+	SkipFolders = []string{"vendor", "node_modules", ".git"}
 )
 
 // Run starts the find filepath walk.
@@ -53,9 +55,14 @@ func visit(path string, fi os.FileInfo, err error) error {
 
 	// If path is a folder
 	if fi.IsDir() {
-		// Ignore dot
+		// Always search current folder
 		if fi.Name() == "." {
 			return nil
+		}
+
+		// Ignore specified folders
+		if inArray(fi.Name(), SkipFolders) {
+			return filepath.SkipDir
 		}
 
 		// If recursive is true
@@ -68,7 +75,6 @@ func visit(path string, fi os.FileInfo, err error) error {
 	}
 
 	matched, err := filepath.Match(*flagExt, fi.Name())
-
 	if err != nil {
 		return err
 	}
@@ -106,4 +112,13 @@ func visit(path string, fi os.FileInfo, err error) error {
 	}
 
 	return nil
+}
+
+func inArray(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
