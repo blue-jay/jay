@@ -22,13 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/blue-jay/blueprint/lib/database"
-	"github.com/blue-jay/blueprint/lib/jsonconfig"
-	"github.com/blue-jay/blueprint/lib/migration"
-	"github.com/blue-jay/blueprint/lib/migration/mysql"
+	"github.com/blue-jay/jay/lib/database"
+	"github.com/blue-jay/jay/lib/migration"
+	"github.com/blue-jay/jay/lib/migration/mysql"
 )
 
 // info contains the database connection information.
@@ -110,7 +110,7 @@ func databaseFolder() (string, *info, error) {
 	}
 
 	// Load the configuration file
-	err := jsonconfig.Load(jc, config)
+	err := load(jc, config)
 	if err != nil {
 		return "", config, errors.New("The configuration file cannot be parsed so this command will not work.")
 	}
@@ -135,4 +135,25 @@ func folderExists(dir string) bool {
 		}
 	}
 	return true
+}
+
+// Parser must implement ParseJSON.
+type Parser interface {
+	ParseJSON([]byte) error
+}
+
+// load the JSON config file.
+func load(configFile string, p Parser) error {
+	// Read the config file
+	jsonBytes, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+
+	// Parse the config
+	if err := p.ParseJSON(jsonBytes); err != nil {
+		return err
+	}
+
+	return nil
 }
