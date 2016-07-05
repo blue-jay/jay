@@ -58,7 +58,7 @@ var (
 )
 
 func main() {
-	app.Version("0.1-alpha")
+	app.Version("0.5-bravo")
 	app.VersionFlag.Short('v')
 	app.HelpFlag.Short('h')
 
