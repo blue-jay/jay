@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/blue-jay/jay/env"
@@ -25,7 +26,7 @@ var (
 	cFindText      = cFind.Arg("text", "Case-sensitive text to find.").Required().String()
 	cFindExtension = cFind.Arg("extension", "File name or extension to search in. Use * as a wildcard. Directory names are not valid.").Default("*.go").String()
 	cFindRecursive = cFind.Arg("recursive", "True to search in subfolders. Default: true").Default("true").Bool()
-	cFindFilename  = cFind.Arg("filename", "True to include file path in results if matched. Default: true").Default("true").Bool()
+	cFindFilename  = cFind.Arg("filename", "True to include file path in results if matched. Default: false").Default("false").Bool()
 
 	cReplace          = app.Command("replace", "Search for files containing matching text and then replace it with new text.")
 	cReplaceFolder    = cReplace.Arg("folder", "Folder to search").Required().String()
@@ -112,7 +113,19 @@ func commandEnv(arg string) {
 		if err != nil {
 			app.Fatalf("%v", err)
 		}
+
+		p, err := filepath.Abs(".")
+		if err != nil {
+			app.Fatalf("%v", err)
+		}
+		config := filepath.Join(p, "env.json")
+		if !common.Exists(config) {
+			app.Fatalf("%v", err)
+		}
+
 		fmt.Println("File, env.json, created successfully with new session keys.")
+		fmt.Println("Set your environment variable, JAYCONFIG, to:")
+		fmt.Println(config)
 	case cEnvKeyshow.FullCommand():
 		fmt.Println("Paste these into your env.json file:")
 		fmt.Printf(`    "AuthKey":"%v",`+"\n", env.EncodedKey(64))

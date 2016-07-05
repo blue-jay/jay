@@ -6,7 +6,7 @@
 //		Replace the word "red" with the word "blue" in all go files in current folder and in subfolders.
 //	jay replace . red blue "*.go" true true
 //		Replace the word "red" with the word "blue" in *.go files in current folder including filenames and in subfolders.
-//	jay replace . blue-jay/blueprint" "user/project"
+//	jay replace . "blue-jay/blueprint" "user/project"
 //		Change the name of the project in current folder and in subfolders and all imports to another repository.
 package replace
 
@@ -27,6 +27,9 @@ var (
 	flagName      *bool
 	flagRecursive *bool
 	flagCommit    *bool
+
+	// MaxSize is the maximum size of a file Go will search through
+	MaxSize int64 = 1048576
 )
 
 // Run starts the replace filepath walk.
@@ -82,6 +85,12 @@ func visit(path string, fi os.FileInfo, err error) error {
 
 	// If the file extension matches
 	if matched {
+		// Skip file if too big
+		if fi.Size() > MaxSize {
+			fmt.Println("**ERROR: Skipping file too big", path)
+			return nil
+		}
+
 		// Read the entire file into memory
 		read, err := ioutil.ReadFile(path)
 		if err != nil {

@@ -24,6 +24,9 @@ var (
 	flagExt       *string
 	flagName      *bool
 	flagRecursive *bool
+
+	// MaxSize is the maximum size of a file Go will search through
+	MaxSize int64 = 1048576
 )
 
 // Run starts the find filepath walk.
@@ -72,6 +75,12 @@ func visit(path string, fi os.FileInfo, err error) error {
 
 	// If the file extension matches
 	if matched {
+		// Skip file if too big
+		if fi.Size() > MaxSize {
+			fmt.Println("**ERROR: Skipping file too big", path)
+			return nil
+		}
+
 		// Read the entire file into memory
 		read, err := ioutil.ReadFile(path)
 		if err != nil {
