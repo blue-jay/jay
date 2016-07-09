@@ -130,6 +130,7 @@ func commandEnv(arg string) {
 		fmt.Println("Paste these into your env.json file:")
 		fmt.Printf(`    "AuthKey":"%v",`+"\n", env.EncodedKey(64))
 		fmt.Printf(`    "EncryptKey":"%v",`+"\n", env.EncodedKey(32))
+		fmt.Printf(`    "CSRFKey":"%v",`+"\n", env.EncodedKey(32))
 	case cEnvKeyUpdate.FullCommand():
 		err := env.UpdateFileKeys("env.json")
 		if err != nil {

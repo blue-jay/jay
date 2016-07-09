@@ -32,6 +32,8 @@ func UpdateFileKeys(src string) error {
 			newFile += fmt.Sprintf(`    "AuthKey":"%v",`, EncodedKey(64))
 		} else if strings.Contains(scanner.Text(), `"EncryptKey"`) {
 			newFile += fmt.Sprintf(`    "EncryptKey":"%v",`, EncodedKey(32))
+		} else if strings.Contains(scanner.Text(), `"CSRFKey"`) {
+			newFile += fmt.Sprintf(`    "CSRFKey":"%v",`, EncodedKey(32))
 		} else {
 			newFile += scanner.Text()
 		}
