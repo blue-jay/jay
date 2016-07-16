@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -162,7 +161,7 @@ func (info *Info) Create(description string) error {
 	down := filepath.Join(info.Folder, prefix+".down"+info.Db.Extension())
 
 	// Create up file
-	err := ioutil.WriteFile(up, []byte(info.TemplateUp), os.ModePerm)
+	err := ioutil.WriteFile(up, []byte(info.TemplateUp), 0644)
 	if err != nil {
 		return err
 	}
@@ -170,7 +169,7 @@ func (info *Info) Create(description string) error {
 	info.output += fmt.Sprintf("Migration created: %v\n", up)
 
 	// Create down file
-	err = ioutil.WriteFile(down, []byte(info.TemplateDown), os.ModePerm)
+	err = ioutil.WriteFile(down, []byte(info.TemplateDown), 0644)
 	if err != nil {
 		return err
 	}

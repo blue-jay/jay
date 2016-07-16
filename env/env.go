@@ -44,7 +44,7 @@ func UpdateFileKeys(src string) error {
 	}
 
 	file.Close()
-	return ioutil.WriteFile(src, []byte(newFile), os.ModePerm)
+	return ioutil.WriteFile(src, []byte(newFile), 0644)
 }
 
 // EncodedKey returns a base64 encoded random key.

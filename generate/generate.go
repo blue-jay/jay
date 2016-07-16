@@ -208,7 +208,7 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 	// Check if the folder exists
 	dir := filepath.Dir(outputFile)
 	if !common.Exists(dir) {
-		err := os.MkdirAll(dir, os.ModePerm)
+		err := os.MkdirAll(dir, 0644)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -297,7 +297,7 @@ func toFile(templateFile string, outputFile string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(outputFile, data, os.ModePerm)
+	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		return err
 	}

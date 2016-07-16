@@ -56,7 +56,7 @@ func setup() *migration.Info {
 	teardown()
 
 	// Make the folder
-	err := os.MkdirAll(migrationFolder, os.ModePerm)
+	err := os.MkdirAll(migrationFolder, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

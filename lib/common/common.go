@@ -56,5 +56,5 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(dst, data, os.ModePerm)
+	return ioutil.WriteFile(dst, data, 0644)
 }
