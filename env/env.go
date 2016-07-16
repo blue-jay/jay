@@ -3,13 +3,12 @@ package env
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"github.com/gorilla/securecookie"
 )
 
 // UpdateFileKeys updates the session keys in the env.json.
@@ -48,7 +47,9 @@ func UpdateFileKeys(src string) error {
 	return ioutil.WriteFile(src, []byte(newFile), os.ModePerm)
 }
 
-// EncodedKey returns a base64 encoded securecookie random key.
-func EncodedKey(i int) string {
-	return base64.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(i))
+// EncodedKey returns a base64 encoded random key.
+func EncodedKey(length int) string {
+	k := make([]byte, length)
+	rand.Read(k)
+	return base64.StdEncoding.EncodeToString(k)
 }
