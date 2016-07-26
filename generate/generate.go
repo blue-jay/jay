@@ -208,7 +208,7 @@ func generateSingle(folderPath string, genFilePath string, variableMap map[strin
 	// Check if the folder exists
 	dir := filepath.Dir(outputFile)
 	if !common.Exists(dir) {
-		err := os.MkdirAll(dir, 0644)
+		err := os.MkdirAll(dir, 0755)
 		if err != nil {
 			log.Fatalln(err)
 		}
