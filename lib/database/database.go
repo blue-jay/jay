@@ -16,12 +16,27 @@ import (
 // *****************************************************************************
 
 var (
-	// SQL wrapper
-	SQL *sqlx.DB
-	// Database info
 	info      Info
 	infoMutex sync.RWMutex
 )
+
+// Config returns the config.
+func Config() Info {
+	infoMutex.RLock()
+	defer infoMutex.RUnlock()
+	return info
+}
+
+// ResetConfig removes the config.
+func ResetConfig() {
+	infoMutex.Lock()
+	info = Info{}
+	infoMutex.Unlock()
+}
+
+// *****************************************************************************
+// Database Handling
+// *****************************************************************************
 
 // Type is the type of database.
 type Type string
@@ -33,22 +48,12 @@ const (
 
 // Info contains the database configurations.
 type Info struct {
-	// Database type
+	// FileStorage is the path to the folder where uploaded files are stored
+	FileStorage string
+	// Type of database
 	Type Type
 	// MySQL info if used
 	MySQL MySQLInfo
-}
-
-// MySQLInfo holds the details for the database connection.
-type MySQLInfo struct {
-	Username  string
-	Password  string
-	Database  string
-	Charset   string
-	Collation string
-	Hostname  string
-	Port      int
-	Parameter string
 }
 
 // Connect to the database.
@@ -73,23 +78,55 @@ func Connect(i Info, connectDatabase bool) error {
 	return err
 }
 
-// Disconnect closes the MySQL connection.
+// Disconnect the database connection.
 func Disconnect() error {
-	return SQL.Close()
+	switch Config().Type {
+	case TypeMySQL:
+		return SQL.Close()
+	default:
+		return errors.New("No registered database in config")
+	}
 }
 
-// ResetConfig removes the config.
-func ResetConfig() {
-	infoMutex.Lock()
-	info = Info{}
-	infoMutex.Unlock()
+// Create a new database.
+func Create(ci MySQLInfo) error {
+	switch Config().Type {
+	case TypeMySQL:
+		// Set defaults
+		ci = setDefaults(ci)
+
+		// Create the database
+		_, err := SQL.Exec(fmt.Sprintf(`CREATE DATABASE %v
+				DEFAULT CHARSET = %v
+				COLLATE = %v
+				;`, ci.Database,
+			ci.Charset,
+			ci.Collation))
+		return err
+	default:
+		return errors.New("No registered database in config")
+	}
 }
 
-// Config returns the config.
-func Config() Info {
-	infoMutex.RLock()
-	defer infoMutex.RUnlock()
-	return info
+// *****************************************************************************
+// MySQL Specific
+// *****************************************************************************
+
+var (
+	// SQL wrapper
+	SQL *sqlx.DB
+)
+
+// MySQLInfo holds the details for the database connection.
+type MySQLInfo struct {
+	Username  string
+	Password  string
+	Database  string
+	Charset   string
+	Collation string
+	Hostname  string
+	Port      int
+	Parameter string
 }
 
 // DSN returns the Data Source Name.
@@ -134,22 +171,7 @@ func dsn(ci MySQLInfo, includeDatabase bool) string {
 	return s
 }
 
-// Create a new database with the charset and collation
-func Create(ci MySQLInfo) error {
-	// Set defaults
-	ci = setDefaults(ci)
-
-	// Create the database
-	_, err := SQL.Exec(fmt.Sprintf(`CREATE DATABASE %v
-				DEFAULT CHARSET = %v
-				COLLATE = %v
-				;`, ci.Database,
-		ci.Charset,
-		ci.Collation))
-	return err
-}
-
-// setDefaults sets the charset and collation if they are not set
+// setDefaults sets the charset and collation if they are not set.
 func setDefaults(ci MySQLInfo) MySQLInfo {
 	if len(ci.Charset) == 0 {
 		ci.Charset = "utf8"
