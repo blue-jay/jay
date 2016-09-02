@@ -4,17 +4,19 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/blue-jay/jay/env"
 	"github.com/blue-jay/jay/find"
 	"github.com/blue-jay/jay/generate"
 	"github.com/blue-jay/jay/lib/common"
-	"github.com/blue-jay/jay/migrate"
 	"github.com/blue-jay/jay/replace"
 
+	"github.com/blue-jay/core/storage/migration/mysql"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -42,20 +44,29 @@ var (
 	cEnvKeyshow   = cEnv.Command("keyshow", "Show a new set of session keys.")
 	cEnvKeyUpdate = cEnv.Command("keyupdate", "Update env.json with a new set of session keys.")
 
-	cMigrate         = app.Command("migrate", "Migrate the database to different states using 'up' and 'down' files.")
-	cMigrateMake     = cMigrate.Command("make", "Create a migration file.")
-	cMigrateMakeDesc = cMigrateMake.Arg("description", "Description for the migration file. Spaces will be converted to underscores and all characters will be make lowercase.").Required().String()
-	cMigrateAll      = cMigrate.Command("all", "Run all 'up' files to advance the database to the latest.")
-	cMigrateReset    = cMigrate.Command("reset", "Run all 'down' files to rollback the database to empty.")
-	cMigrateRefresh  = cMigrate.Command("refresh", "Run all 'down' files and then 'up' files so the database is fresh and updated.")
-	cMigrateStatus   = cMigrate.Command("status", "View the last 'up' file performed on the database.")
-	cMigrateUp       = cMigrate.Command("up", "Apply only the next 'up' file to the database to advance the database one iteration.")
-	cMigrateDown     = cMigrate.Command("down", "Apply only the current 'down' file to the database to rollback the database one iteration.")
+	cMigrateMySQL         = app.Command("migrate:mysql", "Migrate MySQL to different states using 'up' and 'down' files.")
+	cMigrateMySQLMake     = cMigrateMySQL.Command("make", "Create a migration file.")
+	cMigrateMySQLMakeDesc = cMigrateMySQLMake.Arg("description", "Description for the migration file. Spaces will be converted to underscores and all characters will be make lowercase.").Required().String()
+	cMigrateMySQLAll      = cMigrateMySQL.Command("all", "Run all 'up' files to advance the database to the latest.")
+	cMigrateMySQLReset    = cMigrateMySQL.Command("reset", "Run all 'down' files to rollback the database to empty.")
+	cMigrateMySQLRefresh  = cMigrateMySQL.Command("refresh", "Run all 'down' files and then 'up' files so the database is fresh and updated.")
+	cMigrateMySQLStatus   = cMigrateMySQL.Command("status", "View the last 'up' file performed on the database.")
+	cMigrateMySQLUp       = cMigrateMySQL.Command("up", "Apply only the next 'up' file to the database to advance the database one iteration.")
+	cMigrateMySQLDown     = cMigrateMySQL.Command("down", "Apply only the current 'down' file to the database to rollback the database one iteration.")
 
 	cGenerate     = app.Command("generate", "Generate files from template pairs.")
 	cGenerateTmpl = cGenerate.Arg("folder/template", "Template pair name. Don't include an extension.").Required().String()
 	cGenerateVars = stringList(cGenerate.Arg("key:value", "Key and value required for the template pair."))
 )
+
+// init sets runtime settings.
+func init() {
+	// Verbose logging with file name and line number
+	log.SetFlags(log.Lshortfile)
+
+	// Use all CPU cores
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
 func main() {
 	app.Version("0.5-bravo")
@@ -68,7 +79,7 @@ func main() {
 	commandFind(arg)
 	commandReplace(arg)
 	commandEnv(arg)
-	commandMigrate(arg, argList)
+	commandMigrateMySQL(arg, argList)
 	commandGenerate(arg, argList)
 }
 
@@ -140,35 +151,41 @@ func commandEnv(arg string) {
 	}
 }
 
-func commandMigrate(arg string, argList []string) {
-	if argList[0] != "migrate" {
+func commandMigrateMySQL(arg string, argList []string) {
+	if argList[0] != "migrate:mysql" {
 		return
 	}
 
-	mig, err := migrate.Connect()
+	info, err := common.Config()
+	if err != nil {
+		app.Fatalf("%v", err)
+	}
+
+	mysql.SetConfig(info.MySQL)
+	mig, err := mysql.New()
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
 
 	switch arg {
-	case cMigrateMake.FullCommand():
-		err = mig.Create(*cMigrateMakeDesc)
-	case cMigrateAll.FullCommand():
+	case cMigrateMySQLMake.FullCommand():
+		err = mig.Create(*cMigrateMySQLMakeDesc)
+	case cMigrateMySQLAll.FullCommand():
 		err = mig.UpAll()
-	case cMigrateReset.FullCommand():
+	case cMigrateMySQLReset.FullCommand():
 		err = mig.DownAll()
-	case cMigrateRefresh.FullCommand():
-		if mig.Position == -1 {
+	case cMigrateMySQLRefresh.FullCommand():
+		if mig.Position() == 0 {
 			err = mig.UpAll()
 		} else {
 			err = mig.DownAll()
 			err = mig.UpAll()
 		}
-	case cMigrateStatus.FullCommand():
+	case cMigrateMySQLStatus.FullCommand():
 		fmt.Println("Last migration:", mig.Status())
-	case cMigrateUp.FullCommand():
+	case cMigrateMySQLUp.FullCommand():
 		err = mig.UpOne()
-	case cMigrateDown.FullCommand():
+	case cMigrateMySQLDown.FullCommand():
 		err = mig.DownOne()
 	}
 

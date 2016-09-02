@@ -3,12 +3,52 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/blue-jay/core/storage"
 )
+
+// Config returns the storage configuration information.
+func Config() (*storage.Info, error) {
+	config := &storage.Info{}
+
+	jc := os.Getenv("JAYCONFIG")
+	if len(jc) == 0 {
+		return config, errors.New("Environment variable JAYCONFIG needs to be set to the env.json file location.")
+	}
+
+	// Read the config file
+	jsonBytes, err := ioutil.ReadFile(jc)
+	if err != nil {
+		return config, err
+	}
+
+	// Parse the config
+	err = config.ParseJSON(jsonBytes)
+
+	return config, err
+}
+
+// LoadConfig returns the config.
+func LoadConfig(configPath string) (*storage.Info, error) {
+	config := &storage.Info{}
+
+	// Read the config file
+	jsonBytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return config, err
+	}
+
+	// Parse the config
+	err = config.ParseJSON(jsonBytes)
+
+	return config, err
+}
 
 // ProjectFolder returns the project folder path and config.
 func ProjectFolder() (string, map[string]interface{}) {
