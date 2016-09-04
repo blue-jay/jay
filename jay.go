@@ -10,13 +10,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/blue-jay/jay/env"
-	"github.com/blue-jay/jay/find"
-	"github.com/blue-jay/jay/generate"
-	"github.com/blue-jay/jay/lib/common"
-	"github.com/blue-jay/jay/replace"
-
+	"github.com/blue-jay/core/env"
+	"github.com/blue-jay/core/file"
+	"github.com/blue-jay/core/find"
+	"github.com/blue-jay/core/generate"
+	"github.com/blue-jay/core/jsonconfig"
+	"github.com/blue-jay/core/replace"
+	"github.com/blue-jay/core/storage"
 	"github.com/blue-jay/core/storage/migration/mysql"
+
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -116,7 +118,7 @@ func commandReplace(arg string) {
 func commandEnv(arg string) {
 	switch arg {
 	case cEnvMake.FullCommand():
-		err := common.CopyFile("env.json.example", "env.json")
+		err := file.Copy("env.json.example", "env.json")
 		if err != nil {
 			app.Fatalf("%v", err)
 		}
@@ -130,7 +132,7 @@ func commandEnv(arg string) {
 			app.Fatalf("%v", err)
 		}
 		config := filepath.Join(p, "env.json")
-		if !common.Exists(config) {
+		if !file.Exists(config) {
 			app.Fatalf("%v", err)
 		}
 
@@ -156,11 +158,14 @@ func commandMigrateMySQL(arg string, argList []string) {
 		return
 	}
 
-	info, err := common.Config()
+	// Load the config
+	info := &storage.Info{}
+	err := jsonconfig.LoadFromEnv(info)
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
 
+	// Configure MySQL
 	mysql.SetConfig(info.MySQL)
 	mig, err := mysql.New()
 	if err != nil {
@@ -201,9 +206,22 @@ func commandGenerate(arg string, args []string) {
 		return
 	}
 
-	rootFolder, _ := common.ProjectFolder()
+	// Load the config
+	info := &generate.Container{}
+	err := jsonconfig.LoadFromEnv(info)
+	if err != nil {
+		app.Fatalf("%v", err)
+	}
 
-	err := generate.Run(args[1:], rootFolder)
+	// Get the project folder
+	jc := os.Getenv("JAYCONFIG")
+	if len(jc) == 0 {
+		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
+	}
+	projectFolder := filepath.Dir(jc)
+
+	// Generate the code
+	err = generate.Run(args[1:], projectFolder, info.Generation.TemplateFolder)
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
