@@ -213,15 +213,18 @@ func commandGenerate(arg string, args []string) {
 		app.Fatalf("%v", err)
 	}
 
-	// Get the project folder
+	// Get the config path
 	jc := os.Getenv("JAYCONFIG")
 	if len(jc) == 0 {
 		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
 	}
+
+	// Get the folders
 	projectFolder := filepath.Dir(jc)
+	templateFolder := filepath.Join(projectFolder, info.Generation.TemplateFolder)
 
 	// Generate the code
-	err = generate.Run(args[1:], projectFolder, info.Generation.TemplateFolder)
+	err = generate.Run(args[1:], projectFolder, templateFolder)
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
