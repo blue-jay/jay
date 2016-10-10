@@ -167,7 +167,7 @@ func commandMigrateMySQL(arg string, argList []string) {
 
 	// Configure MySQL
 	mysql.SetConfig(info.MySQL)
-	mig, err := mysql.New()
+	mig, err := mysql.Shared().New()
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
