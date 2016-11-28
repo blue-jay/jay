@@ -88,13 +88,17 @@ func main() {
 func commandFind(arg string) {
 	switch arg {
 	case cFind.FullCommand():
-		err := find.Run(cFindText,
+		contents, err := find.Run(cFindText,
 			cFindFolder,
 			cFindExtension,
 			cFindRecursive,
 			cFindFilename)
 		if err != nil {
 			app.Fatalf("%v", err)
+		}
+
+		for _, line := range contents {
+			fmt.Println(line)
 		}
 	}
 }
