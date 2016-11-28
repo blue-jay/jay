@@ -5,6 +5,7 @@ thumbs.db
 # Blue Jay Files
 env.json
 *.exe
+jay
 
 # Folders
 /vendor/
