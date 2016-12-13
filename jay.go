@@ -106,7 +106,7 @@ func commandFind(arg string) {
 func commandReplace(arg string) {
 	switch arg {
 	case cReplace.FullCommand():
-		err := replace.Run(cReplaceFind,
+		contents, err := replace.Run(cReplaceFind,
 			cReplaceFolder,
 			cReplaceText,
 			cReplaceExtension,
@@ -115,6 +115,10 @@ func commandReplace(arg string) {
 			cReplaceCommit)
 		if err != nil {
 			app.Fatalf("%v", err)
+		}
+
+		for _, line := range contents {
+			fmt.Println(line)
 		}
 	}
 }
