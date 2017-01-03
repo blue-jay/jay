@@ -17,13 +17,15 @@ import (
 	"github.com/blue-jay/core/jsonconfig"
 	"github.com/blue-jay/core/replace"
 	"github.com/blue-jay/core/storage"
-	"github.com/blue-jay/core/storage/migration/mysql"
+	mysqlMigration "github.com/blue-jay/core/storage/migration/mysql"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
 	app = kingpin.New("jay", "A command-line application to build faster with Blue Jay.")
+
+	flagConfigFile = app.Flag("config", "Path to the env.json file.").Short('c').String()
 
 	cFind          = app.Command("find", "Search for files containing matching text.")
 	cFindFolder    = cFind.Arg("folder", "Folder to search").Required().String()
@@ -166,16 +168,30 @@ func commandMigrateMySQL(arg string, argList []string) {
 		return
 	}
 
-	// Load the config
+	var err error
+
+	// Config struct
 	info := &storage.Info{}
-	err := jsonconfig.LoadFromEnv(info)
+
+	// Check if the config file path was passed
+	if len(*flagConfigFile) > 0 {
+		// Load the config from the passed file
+		err = jsonconfig.Load(*flagConfigFile, info)
+	} else {
+		// Load the config from the environment variable
+		err = jsonconfig.LoadFromEnv(info)
+	}
+
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
 
-	// Configure MySQL
-	mysql.SetConfig(info.MySQL)
-	mig, err := mysql.Shared().New()
+	mysqlConfig := &mysqlMigration.Configuration{
+		info.MySQL,
+	}
+
+	// Create a new migration object
+	mig, err := mysqlConfig.New()
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
@@ -214,21 +230,31 @@ func commandGenerate(arg string, args []string) {
 		return
 	}
 
+	var err error
+
 	// Load the config
 	info := &generate.Container{}
-	err := jsonconfig.LoadFromEnv(info)
+
+	configFile := ""
+
+	// Check if the config file path was passed
+	if len(*flagConfigFile) > 0 {
+		// Load the config from the passed file
+		err = jsonconfig.Load(*flagConfigFile, info)
+		configFile = *flagConfigFile
+	} else {
+		// Load the config from the environment variable
+		err = jsonconfig.LoadFromEnv(info)
+		// Get the config file path
+		configFile = os.Getenv("JAYCONFIG")
+	}
+
 	if err != nil {
 		app.Fatalf("%v", err)
 	}
 
-	// Get the config path
-	jc := os.Getenv("JAYCONFIG")
-	if len(jc) == 0 {
-		log.Fatalln("Environment variable JAYCONFIG needs to be set to the env.json file location.")
-	}
-
 	// Get the folders
-	projectFolder := filepath.Dir(jc)
+	projectFolder := filepath.Dir(configFile)
 	templateFolder := filepath.Join(projectFolder, info.Generation.TemplateFolder)
 
 	// Generate the code
