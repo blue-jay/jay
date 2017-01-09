@@ -186,6 +186,24 @@ func commandMigrateMySQL(arg string, argList []string) {
 		app.Fatalf("%v", err)
 	}
 
+	// Perform config validation
+	if len(info.MySQL.Database) == 0 {
+		app.Fatalf("%v", "Database name is missing from the config file.")
+	}
+
+	if len(info.MySQL.Migration.Folder) == 0 {
+		app.Fatalf("%v", "Migration folder is missing from the config file.")
+	}
+
+	if !file.Exists(info.MySQL.Migration.Folder) {
+		app.Fatalf("%v", "Migration folder is not found on disk.")
+	}
+
+	if len(info.MySQL.Migration.Table) == 0 {
+		app.Fatalf("%v", "Migration table is missing from the config file.")
+	}
+
+	// Create a new configuration
 	mysqlConfig := &mysqlMigration.Configuration{
 		info.MySQL,
 	}
