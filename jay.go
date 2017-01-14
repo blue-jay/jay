@@ -172,14 +172,20 @@ func commandMigrateMySQL(arg string, argList []string) {
 
 	// Config struct
 	info := &storage.Info{}
+	
+	configFile := ""
 
 	// Check if the config file path was passed
 	if len(*flagConfigFile) > 0 {
 		// Load the config from the passed file
 		err = jsonconfig.Load(*flagConfigFile, info)
+		// Get the config file path
+		configFile = *flagConfigFile
 	} else {
 		// Load the config from the environment variable
 		err = jsonconfig.LoadFromEnv(info)
+		// Get the config file path
+		configFile = os.Getenv("JAYCONFIG")
 	}
 
 	if err != nil {
@@ -190,10 +196,13 @@ func commandMigrateMySQL(arg string, argList []string) {
 	if len(info.MySQL.Database) == 0 {
 		app.Fatalf("%v", "Database name is missing from the config file.")
 	}
-
+	
 	if len(info.MySQL.Migration.Folder) == 0 {
 		app.Fatalf("%v", "Migration folder is missing from the config file.")
 	}
+	
+	// Set to the absolute path
+	info.MySQL.Migration.Folder = filepath.Join(filepath.Dir(configFile), info.MySQL.Migration.Folder)
 
 	if !file.Exists(info.MySQL.Migration.Folder) {
 		app.Fatalf("%v", "Migration folder is not found on disk.")
